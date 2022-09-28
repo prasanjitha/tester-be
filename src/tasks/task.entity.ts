@@ -16,7 +16,9 @@ export class TaskEntity {
     description: string;
 
     @Column()
-    status: TaskStatus
+    status: TaskStatus;
+
+
 
 }
 

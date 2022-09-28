@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { from, Observable } from 'rxjs';
+import { User } from 'src/auth/user.entity';
 import { DeleteResult, Repository, UpdateResult } from 'typeorm';
 import { FeedPostEntity } from '../models/post-entity';
 import { FeedPost } from '../models/post-interface';
@@ -13,19 +14,32 @@ export class FeedService {
         private readonly feedPostRepository: Repository<FeedPostEntity>
     ) { }
 
-    createPost(feedPost: FeedPost): Observable<FeedPost> {
-        console.log(feedPost);
-        return from(this.feedPostRepository.save(feedPost));
+    async createPost(feedPost: FeedPost, user: User): Promise<FeedPost> {
+        const { body } = feedPost
+        const feed = new FeedPostEntity();
+        feed.body = body;
+        feed.user = user;
+        await this.feedPostRepository.save(feed);
+        delete feed.user;
+        return feed;
     }
 
     findAllPosts(): Observable<FeedPost[]> {
         return from(this.feedPostRepository.find());
     }
+    findUserPosts(
+        user: User,
+    ): Observable<FeedPost[]> {
+        const query = this.feedPostRepository.createQueryBuilder('feed_post');
+        query.where('feed_post.userId =:userId', { userId: user.id });
+        const tasks = from(query.getMany());
+        return tasks;
+    }
 
-    findPostById(id: number): Observable<FeedPost> {
-        const found = from(this.feedPostRepository.findOneById(id));
+    async findPostById(id: number, user: User): Promise<FeedPost> {
+        const found = await this.feedPostRepository.findOne({ where: { id, userId: user.id } });
         if (!found) {
-            return null;
+            throw new NotFoundException(`Task with ID "${id}" not found.`);
         }
         return found;
     }
