@@ -31,7 +31,7 @@ export class FeedService {
         user: User,
     ): Observable<FeedPost[]> {
         const query = this.feedPostRepository.createQueryBuilder('feed_post');
-        query.where('feed_post.userId =:userId', { userId: user.id });
+        query.where('feed_post.userId :id', { userId: user.id });
         const tasks = from(query.getMany());
         return tasks;
     }
